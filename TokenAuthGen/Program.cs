@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using TokenAuthGen.Data;
+using TokenAuthGen.Helper;
 using TokenAuthGen.Models;
 using TokenAuthGen.Services;
 
@@ -14,6 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddScoped<jwtGenerateToken>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -26,7 +32,13 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedEmail = true;
-    // Optionally adjust password or user settings here.
+    options.Password.RequireDigit = true;            // Require at least one digit (0-9)
+    options.Password.RequireLowercase = true;        // Require at least one lowercase letter
+    options.Password.RequireUppercase = true;        // Require at least one uppercase letter
+    options.Password.RequireNonAlphanumeric = true; // Require special characters (set true if you want)
+    options.Password.RequiredLength = 8;             // Minimum length
+    options.Password.RequiredUniqueChars = 1;
+    // Optionally adjust password or user settings to your Taste.
 })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
@@ -64,6 +76,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer"
     });
 
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -80,7 +93,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
 
 builder.Services.AddCors(options =>
 {
